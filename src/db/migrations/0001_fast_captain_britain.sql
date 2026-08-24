@@ -1,0 +1,1 @@
+ALTER TABLE "meal_plan_items" ADD COLUMN "source" varchar(20) DEFAULT 'APPROVED' NOT NULL;
