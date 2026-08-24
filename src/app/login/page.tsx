@@ -1,20 +1,37 @@
 import { auth, signIn } from "@/auth";
+import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const session = await auth();
   if (session) {
     redirect("/home");
   }
 
+  const { error } = await searchParams;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface p-4 md:p-8">
       <div className="bg-surface p-6 md:p-10 rounded-3xl md:shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-sm w-full md:border border-border">
-        <h1 className="text-4xl font-extrabold mb-8 text-center text-zomato tracking-tight">Mealok</h1>
+        <h1 className="text-4xl font-extrabold mb-6 text-center text-zomato tracking-tight">Mealok</h1>
+        
+        {error && (
+          <div className="mb-6 p-3 bg-red-50 text-zomato text-sm font-bold rounded-xl border border-red-100 text-center">
+            {error === "CredentialsSignin" ? "Invalid email or password." : "Something went wrong. Please try again."}
+          </div>
+        )}
+
         <form
           action={async (formData) => {
             "use server"
-            await signIn("credentials", formData)
+            try {
+              await signIn("credentials", formData)
+            } catch (err) {
+              if (err instanceof AuthError) {
+                redirect("/login?error=CredentialsSignin");
+              }
+              throw err; // Rethrow Next.js redirect errors
+            }
           }}
           className="flex flex-col gap-4"
         >
