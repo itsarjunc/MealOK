@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Calendar, Utensils, Settings, History } from "lucide-react";
@@ -14,6 +15,21 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    const checkModal = () => {
+      setIsModalOpen(document.body.dataset.modalOpen === "true");
+    };
+    checkModal();
+
+    const observer = new MutationObserver(checkModal);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["data-modal-open"] });
+
+    return () => observer.disconnect();
+  }, []);
+
+  if (isModalOpen) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 bg-surface border-t border-border pb-safe md:hidden">

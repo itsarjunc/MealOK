@@ -25,7 +25,7 @@ export async function setupScenario(type: "A" | "B") {
   const currentPlan = await db.select().from(mealPlans).where(and(eq(mealPlans.householdId, householdId), eq(mealPlans.date, dateStr))).then(r => r[0]);
 
   const allRecipes = await db.select().from(recipes).where(eq(recipes.householdId, householdId));
-  const dinnerRecipe = allRecipes.find(r => r.mealTypes.includes("DINNER"));
+  const dinnerRecipe = allRecipes.find(r => (r.mealTypes as string[])?.includes("DINNER"));
   if (!dinnerRecipe) throw new Error("No dinner recipe found");
 
   if (type === "A") {
@@ -35,6 +35,7 @@ export async function setupScenario(type: "A" | "B") {
       householdId,
       mealType: "DINNER",
       recipeId: dinnerRecipe.id,
+      recipeIds: [dinnerRecipe.id],
       state: "APPROVED",
       source: "APPROVED"
     });
@@ -45,6 +46,7 @@ export async function setupScenario(type: "A" | "B") {
       householdId,
       mealType: "DINNER",
       recipeId: dinnerRecipe.id,
+      recipeIds: [dinnerRecipe.id],
       state: "VOTING",
       source: "APPROVED"
     });

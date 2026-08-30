@@ -26,16 +26,18 @@ export default async function CookTodayPage() {
       state: item.state,
       totalServings: item.totalServings,
       recipe: snapshot?.recipe || { name: "Unknown", instructions: "No instructions available" },
+      snapshot: snapshot || null,
       ingredients: snapshot?.ingredients || []
     };
   });
 
   return (
-    <div className="pb-safe min-h-screen bg-surface">
-      <div className="bg-surface pt-12 pb-4 px-4 sticky top-0 z-10 border-b border-border flex justify-between items-center">
+    <div className="min-h-screen bg-surface-muted pb-safe">
+      <div className="bg-surface px-4 pb-5 pt-8 md:pt-10">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">Today's Cooking</h1>
-          <p className="text-foreground-muted font-medium text-sm mt-0.5">{format(new Date(), "EEEE, MMMM do")}</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-foreground-muted">Kitchen board</p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground">Today&apos;s cooking</h1>
+          <p className="mt-1 text-sm font-medium text-foreground-muted">{format(new Date(), "EEEE, MMMM do")}</p>
         </div>
       </div>
       <div className="flex flex-col pb-24">

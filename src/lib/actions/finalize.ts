@@ -7,7 +7,6 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { finalizeMealPlan } from "@/lib/domain/finalize";
-import { mealPlans } from "@/db/schema";
 import { format, addDays } from "date-fns";
 
 export async function finalizeTomorrow() {

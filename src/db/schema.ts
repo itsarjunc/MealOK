@@ -43,6 +43,7 @@ export const recipes = pgTable("recipes", {
   fat: integer("fat"),
   baseServings: integer("base_servings").notNull().default(1),
   instructions: text("instructions"),
+  image: text("image"),
   isActive: boolean("is_active").notNull().default(true),
 });
 
@@ -74,6 +75,7 @@ export const mealPlanItems = pgTable("meal_plan_items", {
   householdId: integer("household_id").references(() => households.id).notNull(), // Tenant isolation
   mealType: varchar("meal_type", { length: 20 }).notNull(), // BREAKFAST, LUNCH, DINNER
   recipeId: integer("recipe_id").references(() => recipes.id).notNull(),
+  recipeIds: json("recipe_ids"), // Array of recipe IDs for multi-item meals e.g. [1, 5, 12]
   state: varchar("state", { length: 20 }).notNull().default("PROPOSING"),
   source: varchar("source", { length: 20 }).notNull().default("APPROVED"), // APPROVED, FALLBACK
   totalServings: real("total_servings"),

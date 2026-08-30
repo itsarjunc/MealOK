@@ -8,19 +8,19 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const schema = z.object({
-  recipeId: z.number(),
+  recipeIds: z.array(z.number()).min(1),
   mealType: z.enum(["BREAKFAST", "LUNCH", "DINNER"]),
   dateString: z.string(), // YYYY-MM-DD
 });
 
-export async function proposeMeal(recipeId: number, mealType: string, dateString: string) {
+export async function proposeMeal(recipeIds: number[], mealType: string, dateString: string) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
 
   const householdId = parseInt(session.user.householdId);
   const userId = parseInt(session.user.id);
   
-  const parsed = schema.parse({ recipeId, mealType, dateString });
+  const parsed = schema.parse({ recipeIds, mealType, dateString });
 
   let [plan] = await db.select().from(mealPlans).where(
     and(eq(mealPlans.householdId, householdId), eq(mealPlans.date, parsed.dateString))
@@ -46,7 +46,8 @@ export async function proposeMeal(recipeId: number, mealType: string, dateString
     mealPlanId: plan.id,
     householdId,
     mealType: parsed.mealType,
-    recipeId: parsed.recipeId,
+    recipeId: parsed.recipeIds[0], // Primary recipe for backward compat
+    recipeIds: parsed.recipeIds, // All selected recipes
     state: "VOTING",
   }).returning();
 
@@ -56,7 +57,7 @@ export async function proposeMeal(recipeId: number, mealType: string, dateString
     action: "MEAL_PROPOSED",
     entityType: "meal_plan_item",
     entityId: item.id,
-    details: { recipeId, mealType: parsed.mealType },
+    details: { recipeIds: parsed.recipeIds, mealType: parsed.mealType },
   });
 
   const allUsers = await db.select().from(users).where(and(eq(users.householdId, householdId), eq(users.role, "RESIDENT")));
@@ -66,7 +67,7 @@ export async function proposeMeal(recipeId: number, mealType: string, dateString
     householdId,
     type: "MEAL_PROPOSED",
     title: "New Meal Proposed",
-    body: `${session.user.name} proposed a recipe for ${parsed.mealType}.`,
+    body: `${session.user.name} proposed a meal for ${parsed.mealType}.`,
     route: `/plan`,
     entityId: item.id
   }));

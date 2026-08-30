@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, isNull } from "drizzle-orm";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
@@ -18,28 +18,29 @@ export default async function NotificationsPage() {
     .limit(50);
 
   // Mark all as read (simple MVP behavior)
-  if (notifs.some(n => !n.isRead)) {
+  if (notifs.some(n => !n.readAt)) {
     await db.update(notifications)
-      .set({ isRead: true })
-      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+      .set({ readAt: new Date() })
+      .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
   }
 
   return (
-    <div className="pb-safe min-h-screen bg-surface">
-      <div className="bg-surface pt-12 pb-4 px-4 border-b border-border sticky top-0 z-10 flex items-center gap-3">
-        <Link href="/home" className="text-zomato font-bold">← Back</Link>
-        <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Notifications</h1>
+    <div className="min-h-screen bg-surface-muted pb-safe">
+      <div className="bg-surface px-4 pb-5 pt-8 md:pt-10">
+        <Link href="/home" className="text-xs font-extrabold text-foreground-muted hover:text-foreground">← Back home</Link>
+        <h1 className="mt-3 text-3xl font-black tracking-tight text-foreground">Notifications</h1>
+        <p className="mt-1 text-sm font-medium text-foreground-muted">Updates from your household kitchen.</p>
       </div>
-      <div className="flex flex-col pb-24 divide-y divide-border">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 pb-24 pt-5">
         {notifs.length === 0 ? (
           <p className="text-foreground-muted text-center py-8 font-medium">No notifications yet.</p>
         ) : (
           notifs.map(n => (
-            <Link key={n.id} href={n.route || "#"} className={`block bg-surface p-4 transition-colors ${n.isRead ? '' : 'bg-zomato-light'}`}>
+            <Link key={n.id} href={n.route || "#"} className={`block rounded-2xl border p-4 transition-colors ${n.readAt ? 'border-border bg-surface' : 'border-zomato/20 bg-zomato-light'}`}>
               <div className="flex justify-between items-start mb-1">
-                <h3 className={`font-extrabold ${n.isRead ? 'text-foreground' : 'text-zomato-dark'}`}>{n.title}</h3>
+                <h3 className={`font-extrabold ${n.readAt ? 'text-foreground' : 'text-zomato-dark'}`}>{n.title}</h3>
                 <span className="text-[10px] font-medium text-foreground-muted whitespace-nowrap ml-2">
-                  {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                  {n.createdAt ? formatDistanceToNow(new Date(n.createdAt), { addSuffix: true }) : ""}
                 </span>
               </div>
               <p className="text-sm font-medium text-foreground-muted mt-1">{n.body}</p>

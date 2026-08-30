@@ -31,71 +31,87 @@ export async function finalizeMealPlan(dateStr: string, householdId: number, fin
 
   for (const slot of requiredSlots) {
     const existingItem = items.find(i => i.mealType === slot);
-    let targetRecipeId = null;
+    let targetRecipeIds: number[] = [];
     let source = "APPROVED";
 
     if (existingItem && existingItem.state === "APPROVED") {
-      targetRecipeId = existingItem.recipeId;
-      finalItemsToProcess.push({ item: existingItem, recipeId: targetRecipeId, source });
+      targetRecipeIds = (existingItem.recipeIds as number[]) || [existingItem.recipeId];
+      finalItemsToProcess.push({ item: existingItem, recipeIds: targetRecipeIds, source });
     } else {
-      if (slot === "BREAKFAST") targetRecipeId = settings.fallbackBreakfastId;
-      else if (slot === "LUNCH") targetRecipeId = settings.fallbackLunchId;
-      else if (slot === "DINNER") targetRecipeId = settings.fallbackDinnerId;
+      let fallbackId = null;
+      if (slot === "BREAKFAST") fallbackId = settings.fallbackBreakfastId;
+      else if (slot === "LUNCH") fallbackId = settings.fallbackLunchId;
+      else if (slot === "DINNER") fallbackId = settings.fallbackDinnerId;
 
-      if (!targetRecipeId) {
+      if (!fallbackId) {
         throw new Error(`Configuration Error: Missing fallback recipe for ${slot}`);
       }
       
+      targetRecipeIds = [fallbackId];
       source = "FALLBACK";
       
       if (existingItem) {
-        const [updated] = await db.update(mealPlanItems).set({ recipeId: targetRecipeId, source }).where(eq(mealPlanItems.id, existingItem.id)).returning();
-        finalItemsToProcess.push({ item: updated, recipeId: targetRecipeId, source });
+        const [updated] = await db.update(mealPlanItems).set({ recipeId: fallbackId, recipeIds: targetRecipeIds, source }).where(eq(mealPlanItems.id, existingItem.id)).returning();
+        finalItemsToProcess.push({ item: updated, recipeIds: targetRecipeIds, source });
       } else {
         const [inserted] = await db.insert(mealPlanItems).values({
           mealPlanId: plan.id,
           householdId,
           mealType: slot,
-          recipeId: targetRecipeId,
+          recipeId: fallbackId,
+          recipeIds: targetRecipeIds,
           source,
           state: "PROPOSING"
         }).returning();
-        finalItemsToProcess.push({ item: inserted, recipeId: targetRecipeId, source });
+        finalItemsToProcess.push({ item: inserted, recipeIds: targetRecipeIds, source });
       }
     }
   }
 
   let fallbackCount = 0;
 
-  for (const { item, recipeId, source } of finalItemsToProcess) {
+  for (const { item, recipeIds, source } of finalItemsToProcess) {
     const attendances = await db.select().from(mealAttendance).where(eq(mealAttendance.mealPlanItemId, item.id));
     const totalServings = calculateTotalPortions(attendances, allUsers);
 
-    const recipe = allRecipes.find(r => r.id === recipeId);
-    if (!recipe) throw new Error(`Recipe not found for slot ${item.mealType}`);
+    // Snapshot ALL recipes in the combo
+    const snapshotRecipes = [];
+    const allSnapshotIngredients: any[] = [];
 
-    const ings = await db.select().from(recipeIngredients).where(eq(recipeIngredients.recipeId, recipe.id));
-    const scaleFactor = recipe.baseServings > 0 ? (totalServings / recipe.baseServings) : 0;
-    
-    const snapshotIngredients = ings.map(ing => {
-      const iDef = allIngredients.find(i => i.id === ing.ingredientId);
-      return {
-        name: iDef?.name || "Unknown Ingredient",
-        quantity: ing.quantity * scaleFactor,
-        unit: ing.unit
-      };
-    });
+    for (const recipeId of recipeIds) {
+      const recipe = allRecipes.find(r => r.id === recipeId);
+      if (!recipe) throw new Error(`Recipe not found for slot ${item.mealType}`);
 
-    const frozenSnapshot = {
-      recipe: {
+      const ings = await db.select().from(recipeIngredients).where(eq(recipeIngredients.recipeId, recipe.id));
+      const scaleFactor = recipe.baseServings > 0 ? (totalServings / recipe.baseServings) : 0;
+      
+      const scaledIngredients = ings.map(ing => {
+        const iDef = allIngredients.find(i => i.id === ing.ingredientId);
+        return {
+          name: iDef?.name || "Unknown Ingredient",
+          quantity: ing.quantity * scaleFactor,
+          unit: ing.unit,
+          recipeName: recipe.name,
+        };
+      });
+
+      snapshotRecipes.push({
         name: recipe.name,
         instructions: recipe.instructions,
+        image: recipe.image,
         calories: recipe.calories,
         protein: recipe.protein,
         carbs: recipe.carbs,
         fat: recipe.fat,
-      },
-      ingredients: snapshotIngredients
+      });
+
+      allSnapshotIngredients.push(...scaledIngredients);
+    }
+
+    const frozenSnapshot = {
+      recipe: snapshotRecipes[0], // backward compat: primary recipe
+      recipes: snapshotRecipes, // all recipes in the combo
+      ingredients: allSnapshotIngredients,
     };
 
     await db.update(mealPlanItems).set({
@@ -114,7 +130,7 @@ export async function finalizeMealPlan(dateStr: string, householdId: number, fin
         action: "MEAL_FALLBACK_USED",
         entityType: "meal_plan_item",
         entityId: item.id,
-        details: { mealType: item.mealType, fallbackRecipeId: recipeId, reason: "NO_APPROVED_MEAL" }
+        details: { mealType: item.mealType, fallbackRecipeIds: recipeIds, reason: "NO_APPROVED_MEAL" }
       });
     }
 
@@ -124,7 +140,7 @@ export async function finalizeMealPlan(dateStr: string, householdId: number, fin
       action: "MEAL_FINALIZED",
       entityType: "meal_plan_item",
       entityId: item.id,
-      details: { totalServings, scaleFactor, source }
+      details: { totalServings, recipeIds, source }
     });
   }
 

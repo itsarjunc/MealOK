@@ -39,19 +39,19 @@ export function DevTools() {
   return (
     <div className="fixed bottom-24 right-4 z-50">
       {isOpen && (
-        <div className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900 p-4 rounded-lg shadow-lg mb-2 w-48 flex flex-col gap-2">
-          <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Dev Tools</p>
+        <div className="mb-2 flex w-52 flex-col gap-2 rounded-2xl border border-border bg-surface p-4 shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-foreground-muted">Developer tools</p>
           <button 
             onClick={handleFinalize}
             disabled={loading || resetting}
-            className="text-xs bg-red-100 text-red-700 py-2 rounded-md hover:bg-red-200 w-full font-medium dark:bg-red-900 dark:text-red-100 dark:hover:bg-red-800"
+            className="w-full rounded-xl bg-surface-muted py-2 text-xs font-bold text-foreground transition hover:bg-border"
           >
             {loading ? "..." : "Finalize Tomorrow"}
           </button>
           <button 
             onClick={handleReset}
             disabled={loading || resetting}
-            className="text-xs bg-gray-100 text-gray-700 py-2 rounded-md hover:bg-gray-200 w-full font-medium dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 mt-1"
+            className="mt-1 w-full rounded-xl bg-red-50 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100"
           >
             {resetting ? "..." : "Reset Database"}
           </button>
@@ -63,7 +63,7 @@ export function DevTools() {
       )}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="h-12 w-12 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-red-200 dark:shadow-none"
+        className="flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground text-white shadow-[0_8px_25px_rgba(0,0,0,0.16)]"
       >
         <Wrench className="h-5 w-5" />
       </button>

@@ -12,9 +12,11 @@ export default async function MealsPage() {
   const allRecipes = await db.select().from(recipes).where(eq(recipes.householdId, householdId));
 
   return (
-    <div className="pb-safe min-h-screen bg-surface-muted">
-      <div className="bg-surface pt-12 pb-4 px-4 border-b border-border sticky top-0 z-10">
-        <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Household Meals</h1>
+    <div className="min-h-screen bg-surface-muted pb-safe">
+      <div className="bg-surface-muted px-4 pb-6 pt-5 md:pt-10">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-foreground-muted">Recipe library</p>
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground">Household meals</h1>
+        <p className="mt-1 text-sm font-medium text-foreground-muted">Dishes your household can choose from.</p>
       </div>
       <MealsClient initialRecipes={allRecipes} />
     </div>

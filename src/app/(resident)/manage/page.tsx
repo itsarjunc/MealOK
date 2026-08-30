@@ -18,9 +18,11 @@ export default async function ManagePage() {
   const reportingTime = settings?.cookReportingTime || "07:00";
 
   return (
-    <div className="pb-safe min-h-screen bg-surface-muted">
-      <div className="bg-surface pt-12 pb-4 px-4 border-b border-border sticky top-0 z-10">
-        <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Manage</h1>
+    <div className="min-h-screen bg-surface-muted pb-safe">
+      <div className="bg-surface px-4 pb-5 pt-8 md:pt-10">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-foreground-muted">Your preferences</p>
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground">Manage</h1>
+        <p className="mt-1 text-sm font-medium text-foreground-muted">Keep your account and kitchen settings up to date.</p>
       </div>
       <ManageClient initialName={user?.name || ""} initialReportingTime={reportingTime} />
     </div>

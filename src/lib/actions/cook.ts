@@ -22,7 +22,7 @@ export async function updateCookStatus(mealPlanItemId: number, status: "COOKING"
 
   await db.insert(auditLogs).values({
     householdId,
-    userId: session.user.id,
+    userId: parseInt(session.user.id),
     action: "COOK_STATUS_UPDATED",
     entityType: "meal_plan_item",
     entityId: mealPlanItemId,

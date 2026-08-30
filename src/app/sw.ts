@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-declare const self: ServiceWorkerGlobalScope;
+declare const self: any;
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
@@ -18,7 +18,7 @@ const serwist = new Serwist({
   runtimeCaching: defaultCache.filter(
     (cache) => 
       // Do not cache API routes or Server Actions
-      !cache.urlPattern?.toString().includes("/api/")
+      !(cache as any).urlPattern?.toString().includes("/api/")
   ),
 });
 

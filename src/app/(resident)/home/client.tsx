@@ -2,73 +2,130 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Flame, Beef } from "lucide-react";
+import { ArrowRight, Beef, CheckCircle2, Flame, UtensilsCrossed } from "lucide-react";
 
-export function HomeClient({ todayItems, tomorrowItems, userAttendances, tomorrowPlanState, nutrition }: any) {
+type MealItem = {
+  id: number;
+  mealType: string;
+  state: string;
+  recipeNames?: string[];
+};
+
+type Attendance = {
+  mealPlanItemId: number;
+  status: string;
+};
+
+type Nutrition = {
+  cal: number;
+  pro: number;
+};
+
+type HomeClientProps = {
+  todayItems: MealItem[];
+  tomorrowItems: MealItem[];
+  userAttendances: Attendance[];
+  tomorrowPlanState: string;
+  nutrition: Nutrition;
+};
+
+const statusStyles: Record<string, string> = {
+  COMPLETED: "bg-green-50 text-green-700 border-green-100",
+  COOKING: "bg-amber-50 text-amber-700 border-amber-100",
+  FINALIZED: "bg-blue-50 text-blue-700 border-blue-100",
+  APPROVED: "bg-surface-muted text-foreground-muted border-border",
+};
+
+function formatMealType(mealType: string) {
+  return mealType.charAt(0) + mealType.slice(1).toLowerCase();
+}
+
+function MealRow({ item, attendance }: { item: MealItem; attendance?: Attendance }) {
+  const statusClass = statusStyles[item.state] || "bg-surface-muted text-foreground-muted border-border";
+
   return (
-    <div className="flex flex-col gap-4">
-      <section className="bg-surface rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-border/50 p-5">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-extrabold text-foreground tracking-tight">Today's Meals</h2>
-          <div className="flex gap-2.5 items-center text-[11px] font-bold text-foreground bg-surface-muted px-2.5 py-1.5 rounded-lg border border-border">
-            <span className="flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-orange-500" /> {nutrition?.cal || 0} kcal</span>
-            <span className="text-border">|</span>
-            <span className="text-zomato flex items-center gap-1"><Beef className="h-3.5 w-3.5 text-zomato" /> {nutrition?.pro || 0}g protein</span>
-          </div>
+    <motion.div whileTap={{ scale: 0.99 }} className="flex items-center justify-between gap-4 border-b border-border py-4 last:border-0">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-border" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-foreground-muted">{formatMealType(item.mealType)}</p>
+          <h3 className="mt-1 truncate text-base font-extrabold tracking-tight text-foreground">
+            {item.recipeNames?.length ? item.recipeNames.join(" + ") : "Meal not selected"}
+          </h3>
+          <p className="mt-1 text-xs font-medium text-foreground-muted">
+            Attendance: <span className="font-bold text-foreground">{attendance?.status || "Not set"}</span>
+          </p>
         </div>
-        {todayItems.length === 0 ? (
-          <div className="py-8 text-center flex flex-col items-center gap-3">
-            <p className="text-foreground-muted font-medium">No meals planned for today.</p>
-            <Link 
-              href="/plan" 
-              className="bg-gradient-to-b from-zomato to-[#c52c38] text-white font-bold px-6 py-2.5 rounded-xl text-sm border-b-4 border-[#9c1822] active:translate-y-[2px] active:border-b-2 transition-all shadow-md shadow-zomato/20"
-            >
-              Plan Now
-            </Link>
+      </div>
+      <span className={`flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide ${statusClass}`}>
+        {item.state === "COMPLETED" && <CheckCircle2 className="h-3 w-3" />}
+        {item.state.toLowerCase()}
+      </span>
+    </motion.div>
+  );
+}
+
+export function HomeClient({ todayItems, tomorrowItems, userAttendances, nutrition }: HomeClientProps) {
+  const attendanceFor = (item: MealItem) => userAttendances.find((attendance) => attendance.mealPlanItemId === item.id);
+
+  return (
+    <div className="grid gap-5 md:grid-cols-[1.35fr_1fr] md:items-start">
+      <section className="overflow-hidden rounded-[2rem] border border-border bg-surface shadow-[0_12px_40px_rgba(0,0,0,0.05)]">
+        <div className="border-b border-border px-5 pb-4 pt-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-foreground-muted">Today</p>
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-foreground">Your meals</h2>
+            </div>
+            <div className="flex gap-2 rounded-2xl bg-surface-muted px-3 py-2 text-[10px] font-bold text-foreground-muted">
+              <span className="flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-foreground-muted" />{nutrition.cal}</span>
+              <span className="text-border">|</span>
+              <span className="flex items-center gap-1"><Beef className="h-3.5 w-3.5 text-foreground-muted" />{nutrition.pro}g</span>
+            </div>
           </div>
-        ) : (
-          <div className="flex flex-col divide-y divide-border">
-            {todayItems.map((item: any) => {
-              const att = userAttendances.find((a: any) => a.mealPlanItemId === item.id);
-              const statusColor = item.state === "COMPLETED" ? "bg-green-100 text-green-700" : 
-                                item.state === "COOKING" ? "bg-amber-100 text-amber-700" : 
-                                "bg-gray-100 text-gray-700";
-              return (
-                <motion.div whileTap={{ scale: 0.98 }} key={item.id} className="py-4 flex justify-between items-center">
-                  <div>
-                    <h3 className="font-extrabold text-foreground text-lg">{item.mealType}</h3>
-                    <p className="text-xs text-foreground-muted mt-0.5">Your Attendance: <span className="font-bold text-foreground">{att?.status || "NOT SET"}</span></p>
-                  </div>
-                  <div className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase ${statusColor}`}>
-                    {item.state}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
+          <p className="mt-2 text-xs font-medium text-foreground-muted">Your nutrition estimate for the meals you&apos;re eating.</p>
+        </div>
+
+        <div className="px-5">
+          {todayItems.length === 0 ? (
+            <EmptyState message="No meals planned for today." action="Plan today" />
+          ) : (
+            todayItems.map((item) => <MealRow key={item.id} item={item} attendance={attendanceFor(item)} />)
+          )}
+        </div>
       </section>
 
-      <section className="bg-surface rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-border/50 p-5">
-        <div className="flex justify-between items-end mb-4">
-          <h2 className="text-xl font-extrabold text-foreground tracking-tight">Tomorrow</h2>
-          <Link href="/plan" className="text-sm font-bold text-zomato">View Plan →</Link>
-        </div>
-        <div className="bg-zomato-light p-5 rounded-2xl border border-red-50">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-extrabold text-zomato-dark text-lg">Planning Status</h3>
-            <span className="text-[10px] font-bold bg-white text-zomato-dark px-2.5 py-1 rounded-md shadow-sm border border-red-100 uppercase">{tomorrowPlanState}</span>
+      <section className="overflow-hidden rounded-[2rem] border border-border bg-surface shadow-[0_12px_40px_rgba(0,0,0,0.05)]">
+        <div className="border-b border-border px-5 pb-4 pt-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-muted text-foreground-muted"><UtensilsCrossed className="h-5 w-5" /></div>
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-foreground-muted">Tomorrow</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-foreground">Coming up</h2>
+            </div>
           </div>
-          <p className="text-sm text-zomato-dark/80 mb-5 font-medium leading-relaxed">
-            {tomorrowPlanState === "NO_PLAN" ? "No meals proposed yet." :
-             tomorrowPlanState === "PROPOSING" ? "Meals are being proposed and voted on." :
-             "The plan is locked in for the cook."}
-          </p>
-          <Link href="/plan" className="block text-center w-full bg-gradient-to-b from-zomato to-[#c52c38] text-white py-3.5 rounded-xl font-bold border-b-4 border-[#9c1822] active:translate-y-[2px] active:border-b-2 transition-all shadow-md shadow-zomato/20">
-            Manage Attendance & Votes
-          </Link>
         </div>
+        <div className="px-5">
+          {tomorrowItems.length === 0 ? (
+            <EmptyState message="Nothing planned yet." />
+          ) : (
+            tomorrowItems.map((item) => <MealRow key={item.id} item={item} attendance={attendanceFor(item)} />)
+          )}
+        </div>
+        <Link href="/plan" className="mx-5 mb-5 mt-2 flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-muted px-4 py-3 text-xs font-extrabold text-foreground transition hover:bg-border">
+          Manage tomorrow&apos;s plan <ArrowRight className="h-4 w-4" />
+        </Link>
       </section>
+    </div>
+  );
+}
+
+function EmptyState({ message, action }: { message: string; action?: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-10 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-muted text-foreground-muted"><UtensilsCrossed className="h-5 w-5" /></div>
+      <p className="text-sm font-semibold text-foreground-muted">{message}</p>
+      {action && <Link href="/plan" className="text-xs font-extrabold text-zomato hover:text-zomato-dark">{action} <ArrowRight className="ml-1 inline h-3.5 w-3.5" /></Link>}
     </div>
   );
 }

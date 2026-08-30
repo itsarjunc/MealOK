@@ -15,7 +15,7 @@ export function CookNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-20 bg-surface border-t border-border pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-20 border-t border-border bg-surface pb-safe shadow-[0_-8px_25px_rgba(0,0,0,0.06)] md:hidden">
       {navItems.map((item) => {
         const isActive = pathname.startsWith(item.href);
         const Icon = item.icon;

@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Mealok',
-    short_name: 'Mealok',
+    name: 'MealOK',
+    short_name: 'MealOK',
     description: 'Household meal planning and cooking management',
     start_url: '/',
     display: 'standalone',

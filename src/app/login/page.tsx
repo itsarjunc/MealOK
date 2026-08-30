@@ -11,12 +11,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface p-4 md:p-8">
-      <div className="bg-surface p-6 md:p-10 rounded-3xl md:shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-sm w-full md:border border-border">
-        <h1 className="text-4xl font-extrabold mb-6 text-center text-zomato tracking-tight">Mealok</h1>
+    <div className="flex min-h-screen items-center justify-center bg-surface-muted p-4 md:p-8">
+      <div className="w-full max-w-sm rounded-[2rem] border border-border bg-surface p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)] md:p-10">
+        <div className="flex justify-center mb-8 select-none">
+          <img src="/branding/Vector.svg" alt="Logo" className="h-24 w-auto" />
+        </div>
         
         {error && (
-          <div className="mb-6 p-3 bg-red-50 text-zomato text-sm font-bold rounded-xl border border-red-100 text-center">
+          <div className="mb-6 rounded-xl border border-red-100 bg-red-50 p-3 text-center text-sm font-bold text-red-700">
             {error === "CredentialsSignin" ? "Invalid email or password." : "Something went wrong. Please try again."}
           </div>
         )}
@@ -55,7 +57,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               defaultValue="password"
             />
           </div>
-          <button type="submit" className="w-full bg-gradient-to-b from-zomato to-[#c52c38] text-white py-3.5 rounded-xl hover:brightness-105 font-bold text-lg mt-4 focus:outline-none border-b-4 border-[#9c1822] active:translate-y-[2px] active:border-b-2 transition-all shadow-md shadow-zomato/20">
+          <button type="submit" className="mt-2 w-full rounded-xl bg-zomato py-3 font-bold text-white transition hover:bg-zomato-dark focus:outline-none">
             Sign In
           </button>
         </form>

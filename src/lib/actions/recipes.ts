@@ -13,6 +13,7 @@ export async function createRecipe(formData: {
   carbs: number;
   fat: number;
   instructions: string;
+  image?: string;
 }) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
@@ -28,6 +29,7 @@ export async function createRecipe(formData: {
     carbs: formData.carbs,
     fat: formData.fat,
     instructions: formData.instructions,
+    image: formData.image,
     baseServings: 1,
   });
 

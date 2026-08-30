@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createRecipe } from "@/lib/actions/recipes";
+import { searchMealDB, getForkifyRecipeDetails, type MealDBResult } from "@/lib/actions/recipe-search";
 import { motion, AnimatePresence } from "framer-motion";
+import { BookOpen, X } from "lucide-react";
 
 export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -11,13 +13,17 @@ export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
   useEffect(() => {
     if (showAddForm) {
       document.body.style.overflow = "hidden";
+      document.body.dataset.modalOpen = "true";
     } else {
       document.body.style.overflow = "";
+      delete document.body.dataset.modalOpen;
     }
     return () => {
       document.body.style.overflow = "";
+      delete document.body.dataset.modalOpen;
     };
   }, [showAddForm]);
+
   const [name, setName] = useState("");
   const [mealTypes, setMealTypes] = useState<string[]>([]);
   const [calories, setCalories] = useState("");
@@ -25,6 +31,56 @@ export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [image, setImage] = useState("");
+
+  // API search state
+  const [apiQuery, setApiQuery] = useState("");
+  const [apiResults, setApiResults] = useState<MealDBResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Debounced API search
+  useEffect(() => {
+    if (apiQuery.trim().length < 2) {
+      setApiResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      const results = await searchMealDB(apiQuery);
+      setApiResults(results);
+      setIsSearching(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [apiQuery]);
+
+  const selectApiResult = async (result: MealDBResult) => {
+    setIsPending(true);
+    try {
+      setName(result.name);
+      setImage(result.image);
+      setCalories(result.calories ? result.calories.toString() : "");
+      setProtein(result.protein ? result.protein.toString() : "");
+      setCarbs(result.carbs ? result.carbs.toString() : "");
+      setFat(result.fat ? result.fat.toString() : "");
+
+      if (result.isForkify && result.id) {
+        const details = await getForkifyRecipeDetails(result.id);
+        if (details) {
+          setInstructions(details.instructions);
+        } else {
+          setInstructions("");
+        }
+      } else {
+        setInstructions(result.instructions?.slice(0, 500) || "");
+      }
+    } catch (e: any) {
+      alert("Failed to load recipe details. You can enter instructions manually.");
+    } finally {
+      setIsPending(false);
+      setApiQuery("");
+      setApiResults([]);
+    }
+  };
 
   const toggleMealType = (type: string) => {
     if (mealTypes.includes(type)) {
@@ -32,6 +88,19 @@ export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
     } else {
       setMealTypes([...mealTypes, type]);
     }
+  };
+
+  const resetForm = () => {
+    setName("");
+    setMealTypes([]);
+    setCalories("");
+    setProtein("");
+    setCarbs("");
+    setFat("");
+    setInstructions("");
+    setImage("");
+    setApiQuery("");
+    setApiResults([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,14 +119,9 @@ export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
         carbs: carbs ? parseInt(carbs) : 0,
         fat: fat ? parseInt(fat) : 0,
         instructions,
+        image: image || undefined,
       });
-      setName("");
-      setMealTypes([]);
-      setCalories("");
-      setProtein("");
-      setCarbs("");
-      setFat("");
-      setInstructions("");
+      resetForm();
       setShowAddForm(false);
     } catch (err: any) {
       alert(err.message || "Failed to create recipe");
@@ -67,13 +131,16 @@ export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 pb-24">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 pb-24">
       {/* Add Meal Header Trigger */}
-      <div className="p-4 bg-surface rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-border/50 flex justify-between items-center">
-        <span className="text-sm font-extrabold text-foreground-muted">{initialRecipes.length} recipes available</span>
+      <div className="flex items-center justify-between rounded-[2rem] border border-border bg-surface p-4 shadow-[0_12px_40px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-muted text-foreground-muted"><BookOpen className="h-5 w-5" /></div>
+          <div><p className="text-sm font-extrabold text-foreground">Your collection</p><p className="text-xs font-medium text-foreground-muted">{initialRecipes.length} {initialRecipes.length === 1 ? "recipe" : "recipes"} available</p></div>
+        </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="bg-gradient-to-b from-zomato to-[#c52c38] text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border-b-2 border-[#9c1822] active:translate-y-[1px] active:border-b transition-all shadow-md shadow-zomato/20"
+          className="rounded-xl bg-zomato px-3 py-2 text-[11px] font-bold text-white transition hover:bg-zomato-dark"
         >
           + Add New Meal
         </button>
@@ -97,20 +164,56 @@ export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-              className="relative bg-surface rounded-t-[2rem] md:rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto flex flex-col pb-safe shadow-2xl z-10"
+              className="relative z-10 flex max-h-[90vh] w-full max-w-md flex-col overflow-y-auto rounded-t-[2rem] bg-surface p-6 pb-safe shadow-2xl md:rounded-3xl"
             >
               <div className="w-12 h-1.5 bg-surface-muted rounded-full mx-auto mb-6 md:hidden" />
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-extrabold text-foreground tracking-tight">Add New Meal</h2>
-                <button 
-                  onClick={() => setShowAddForm(false)}
-                  className="text-foreground-muted hover:text-foreground font-bold text-sm"
-                >
-                  Close
-                </button>
+                <button type="button" onClick={() => !isPending && setShowAddForm(false)} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-muted text-foreground-muted hover:bg-border"><X className="h-4 w-4" /></button>
               </div>
 
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-8">
+                {/* API Search */}
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-foreground uppercase tracking-wide">Search Online Recipes</label>
+                  <input
+                    type="text"
+                    value={apiQuery}
+                    onChange={(e) => setApiQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.preventDefault();
+                    }}
+                    placeholder="Search for a dish (e.g. chicken, curry, bread)..."
+                    className="w-full border border-border bg-surface-muted text-foreground p-3 rounded-xl focus:border-zomato focus:ring-1 focus:ring-zomato outline-none transition-all text-sm"
+                  />
+                  {isSearching && (
+                    <p className="text-[10px] text-foreground-muted mt-1.5 font-bold uppercase tracking-wider animate-pulse">Searching...</p>
+                  )}
+                  {apiQuery.trim().length >= 2 && !isSearching && apiResults.length === 0 && (
+                    <p className="text-[10px] text-foreground-muted mt-1.5 font-medium">No online recipes found for "{apiQuery}". Feel free to type the details manually below.</p>
+                  )}
+                  {apiResults.length > 0 && (
+                    <div className="mt-2 grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                      {apiResults.map((result, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => selectApiResult(result)}
+                          className="border border-border bg-surface rounded-xl overflow-hidden text-left transition-all hover:border-zomato/50 hover:shadow-md"
+                        >
+                          {result.image && (
+                            <img src={result.image} alt={result.name} className="w-full h-20 object-cover" />
+                          )}
+                          <div className="p-2">
+                            <p className="text-[11px] font-bold text-foreground line-clamp-1">{result.name}</p>
+                            <p className="text-[9px] text-foreground-muted font-medium">{result.area}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold mb-1.5 text-foreground uppercase tracking-wide">Meal Name</label>
                   <input
@@ -118,7 +221,7 @@ export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Eggs + Toast"
+                    placeholder="e.g. Chapati, Chicken Curry, Rice"
                     className="w-full border border-border bg-surface-muted text-foreground p-3 rounded-xl focus:border-zomato focus:ring-1 focus:ring-zomato outline-none transition-all"
                   />
                 </div>
@@ -200,13 +303,34 @@ export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="w-full bg-gradient-to-b from-zomato to-[#c52c38] text-white py-3.5 rounded-xl font-bold border-b-4 border-[#9c1822] active:translate-y-[2px] active:border-b-2 transition-all shadow-lg shadow-zomato/30 disabled:opacity-50"
-                >
-                  {isPending ? "Adding..." : "Add Meal"}
-                </button>
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-foreground uppercase tracking-wide">Image URL (Optional)</label>
+                  <input
+                    type="text"
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full border border-border bg-surface-muted text-foreground p-3 rounded-xl focus:border-zomato focus:ring-1 focus:ring-zomato outline-none transition-all"
+                  />
+                </div>
+
+                <div className="flex gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    disabled={isPending}
+                    className="flex-1 rounded-xl border border-border bg-surface-muted py-3 text-xs font-bold text-foreground transition hover:bg-border"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    className="flex-1 rounded-xl bg-zomato py-3 text-xs font-bold text-white transition hover:bg-zomato-dark disabled:opacity-50"
+                  >
+                    {isPending ? "Adding..." : "Add Meal"}
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>
@@ -214,44 +338,39 @@ export function MealsClient({ initialRecipes }: { initialRecipes: any[] }) {
       </AnimatePresence>
 
       {/* Recipe List */}
-      <div className="flex flex-col gap-4">
+      {initialRecipes.length === 0 ? (
+        <div className="rounded-[2rem] border border-dashed border-border bg-surface px-6 py-16 text-center">
+          <BookOpen className="mx-auto h-8 w-8 text-foreground-muted" />
+          <p className="mt-4 text-sm font-bold text-foreground">Your recipe library is empty</p>
+          <p className="mt-1 text-xs font-medium text-foreground-muted">Add a meal to start planning menus.</p>
+        </div>
+      ) : (
+      <div className="grid grid-cols-2 gap-4 pb-4 md:grid-cols-3">
         {initialRecipes.map((recipe) => (
-          <div key={recipe.id} className="bg-surface rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-border/50 p-5">
-            <h2 className="text-xl font-extrabold text-foreground">{recipe.name}</h2>
-            <div className="flex gap-2 mt-2 flex-wrap">
-              {recipe.mealTypes.map((t: string) => (
-                <span key={t} className="text-[10px] font-bold bg-surface-muted text-foreground border border-border px-2.5 py-1 rounded-md">
-                  {t}
-                </span>
-              ))}
-            </div>
-            <div className="mt-5 grid grid-cols-4 gap-2 text-center">
-              <div className="bg-surface-muted p-2 rounded-xl border border-border">
-                <p className="text-[10px] text-foreground-muted uppercase font-bold mb-1">Cals</p>
-                <p className="font-extrabold text-foreground">{recipe.calories || 0}</p>
+          <div key={recipe.id} className="flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_25px_rgba(0,0,0,0.04)] transition-all hover:border-border hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
+            <div>
+              <div className="relative aspect-[4/3] bg-surface-muted">
+                {recipe.image ? (
+                  <img
+                    src={recipe.image}
+                    alt={recipe.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[10px] text-foreground-muted bg-border/20 font-bold uppercase tracking-wider">
+                    No Image
+                  </div>
+                )}
               </div>
-              <div className="bg-surface-muted p-2 rounded-xl border border-border">
-                <p className="text-[10px] text-foreground-muted uppercase font-bold mb-1">Pro</p>
-                <p className="font-extrabold text-foreground">{recipe.protein || 0}g</p>
-              </div>
-              <div className="bg-surface-muted p-2 rounded-xl border border-border">
-                <p className="text-[10px] text-foreground-muted uppercase font-bold mb-1">Carb</p>
-                <p className="font-extrabold text-foreground">{recipe.carbs || 0}g</p>
-              </div>
-              <div className="bg-surface-muted p-2 rounded-xl border border-border">
-                <p className="text-[10px] text-foreground-muted uppercase font-bold mb-1">Fat</p>
-                <p className="font-extrabold text-foreground">{recipe.fat || 0}g</p>
+              <div className="p-3">
+                <h3 className="font-extrabold text-foreground text-sm line-clamp-1 leading-snug">{recipe.name}</h3>
+                <p className="text-[10px] text-foreground-muted font-bold mt-1 uppercase tracking-wide">{recipe.calories} kcal • {recipe.protein}g P</p>
               </div>
             </div>
-            {recipe.instructions && (
-              <div className="mt-5 pt-5 border-t border-border">
-                <p className="text-sm text-foreground font-extrabold mb-1">Instructions</p>
-                <p className="text-sm text-foreground-muted font-medium">{recipe.instructions}</p>
-              </div>
-            )}
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

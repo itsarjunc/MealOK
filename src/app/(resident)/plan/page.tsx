@@ -21,7 +21,12 @@ export default async function PlanPage() {
   const allRecipes = await db.select().from(recipes).where(eq(recipes.householdId, householdId));
   
   const enrichedItems = await Promise.all(items.map(async (item) => {
-    const recipe = allRecipes.find(r => r.id === item.recipeId);
+    // Resolve all recipes for multi-item meals
+    const itemRecipeIds: number[] = (item.recipeIds as number[]) || [item.recipeId];
+    const resolvedRecipes = itemRecipeIds
+      .map(id => allRecipes.find(r => r.id === id))
+      .filter(Boolean);
+
     const itemAttendances = await db.select().from(mealAttendance).where(eq(mealAttendance.mealPlanItemId, item.id));
     const userAtt = itemAttendances.find(a => a.userId === userId);
     
@@ -33,7 +38,8 @@ export default async function PlanPage() {
 
     return {
       ...item,
-      recipe,
+      recipe: resolvedRecipes[0] || null, // Primary recipe for backward compat
+      recipes: resolvedRecipes, // All recipes in the combo
       userAttendance: userAtt?.status || null,
       eatingCount,
       userVote: userVote?.vote || null,
@@ -47,10 +53,11 @@ export default async function PlanPage() {
   });
 
   return (
-    <div className="pb-safe min-h-screen bg-surface-muted">
-      <div className="bg-surface pt-12 pb-4 px-4 border-b border-border sticky top-0 z-10">
-        <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Tomorrow's Plan</h1>
-        <p className="text-foreground-muted font-medium text-sm mt-0.5">{format(addDays(new Date(), 1), "EEEE, MMMM do")}</p>
+    <div className="min-h-screen bg-surface-muted pb-safe">
+      <div className="bg-surface px-4 pb-5 pt-8 md:pt-10">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-foreground-muted">Planning ahead</p>
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground">Tomorrow&apos;s plan</h1>
+        <p className="mt-1 text-sm font-medium text-foreground-muted">{format(addDays(new Date(), 1), "EEEE, MMMM do")}</p>
       </div>
       <div className="flex flex-col gap-4 p-4 pb-24">
         <PlanClient slots={slots} recipes={allRecipes} planStatus={tomorrowPlan?.status || "NO_PLAN"} dateStr={tomorrowStr} />

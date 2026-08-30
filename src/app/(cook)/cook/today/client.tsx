@@ -21,7 +21,7 @@ export function CookClient({ items, readOnly }: any) {
 
   if (items.length === 0) {
     return (
-      <div className="bg-surface p-8 text-center border-b border-border">
+      <div className="mx-4 rounded-[2rem] border border-border bg-surface p-8 text-center shadow-[0_12px_40px_rgba(0,0,0,0.05)]">
         <p className="text-foreground-muted font-medium">No meals finalized for today yet.</p>
       </div>
     );
@@ -30,8 +30,8 @@ export function CookClient({ items, readOnly }: any) {
   return (
     <div className="flex flex-col">
       {items.map((item: any) => (
-        <div key={item.id} className="bg-surface border-b border-border pb-6">
-          <div className="bg-surface-muted px-4 py-3 border-b border-border flex justify-between items-center">
+        <div key={item.id} className="overflow-hidden rounded-[2rem] border border-border bg-surface shadow-[0_12px_40px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-4">
             <h2 className="font-extrabold text-foreground tracking-tight text-lg">{item.mealType}</h2>
             <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wide border ${
               item.state === "COMPLETED" ? "bg-green-50 text-green-700 border-green-100" :
@@ -43,15 +43,20 @@ export function CookClient({ items, readOnly }: any) {
           </div>
 
           <div className="p-5">
-            <h3 className="text-xl font-extrabold text-foreground mb-1">{item.recipe?.name}</h3>
+            {/* Show all dish names */}
+            <h3 className="text-xl font-extrabold text-foreground mb-1">
+              {item.snapshot?.recipes
+                ? item.snapshot.recipes.map((r: any) => r.name).join(" + ")
+                : item.recipe?.name}
+            </h3>
             <p className="text-sm text-foreground-muted mb-5 font-medium">{item.totalServings} Total Servings</p>
 
-            <div className="bg-surface-muted p-5 rounded-2xl mb-5 border border-border">
+            <div className="mb-5 rounded-2xl border border-border bg-surface-muted p-5">
               <h4 className="text-sm font-extrabold text-foreground mb-3">Ingredients Required</h4>
               <ul className="space-y-2.5">
                 {item.ingredients.map((ing: any, idx: number) => (
                   <li key={idx} className="flex justify-between text-sm text-foreground-muted font-medium">
-                    <span>{ing.name}</span>
+                    <span>{ing.name}{ing.recipeName ? ` (${ing.recipeName})` : ""}</span>
                     <span className="font-bold text-foreground">{formatQuantity(ing.quantity, ing.unit)}</span>
                   </li>
                 ))}
@@ -60,7 +65,20 @@ export function CookClient({ items, readOnly }: any) {
 
             <div className="mb-7">
               <h4 className="text-sm font-extrabold text-foreground mb-2">Instructions</h4>
-              <p className="text-sm text-foreground-muted leading-relaxed font-medium">{item.recipe?.instructions}</p>
+              {item.snapshot?.recipes ? (
+                <div className="space-y-3">
+                  {item.snapshot.recipes.map((r: any, idx: number) => (
+                    <div key={idx}>
+                      {item.snapshot.recipes.length > 1 && (
+                        <p className="text-xs font-bold text-foreground-muted uppercase tracking-wide mb-1">{r.name}</p>
+                      )}
+                      <p className="text-sm text-foreground-muted leading-relaxed font-medium">{r.instructions}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-foreground-muted leading-relaxed font-medium">{item.recipe?.instructions}</p>
+              )}
             </div>
 
             {!readOnly && item.state === "FINALIZED" && (
@@ -68,7 +86,7 @@ export function CookClient({ items, readOnly }: any) {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleStatus(item.id, "COOKING")}
                 disabled={isPending}
-                className="w-full bg-zomato text-white py-3.5 rounded-xl font-bold hover:bg-zomato-dark transition-all active:scale-95 shadow-md shadow-zomato/20"
+                className="w-full rounded-xl bg-zomato py-3.5 font-bold text-white transition hover:bg-zomato-dark active:scale-[0.99]"
               >
                 Start Cooking
               </motion.button>
