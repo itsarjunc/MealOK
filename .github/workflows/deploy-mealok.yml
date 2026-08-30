@@ -1,9 +1,11 @@
 name: Deploy MealOK
 
-run-name: Deploy MealOK ${{ github.ref_type == 'tag' && github.ref_name || 'manual' }}
+run-name: Deploy MealOK ${{ github.event_name == 'workflow_dispatch' && 'manual' || github.ref_name }}
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   workflow_dispatch:
@@ -74,7 +76,7 @@ jobs:
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             image_version="${GITHUB_REF_NAME}"
           else
-            image_version="manual-${GITHUB_SHA:0:12}"
+            image_version="commit-${GITHUB_SHA:0:12}"
           fi
           image_version="$(printf '%s' "${image_version}" | tr -c 'A-Za-z0-9_.-' '-')"
           image_tag="mealok:${image_version}"
