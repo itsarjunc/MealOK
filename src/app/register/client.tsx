@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { registerUser } from "@/lib/actions/register";
 import { RefreshCw, UserPlus } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -15,10 +15,14 @@ function createCaptcha() {
 
 export function RegisterClient() {
   const router = useRouter();
-  const [captcha, setCaptcha] = useState(createCaptcha);
+  const [captcha, setCaptcha] = useState({ first: 2, second: 2, answer: 4 });
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setCaptcha(createCaptcha());
+  }, []);
 
   const refreshCaptcha = () => {
     setCaptcha(createCaptcha());
