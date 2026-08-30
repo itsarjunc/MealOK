@@ -1,0 +1,11 @@
+.git
+.github
+.next
+node_modules
+coverage
+*.log
+.env*
+.ci
+README.md
+AGENTS.md
+CLAUDE.md

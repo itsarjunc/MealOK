@@ -4,6 +4,8 @@ import { and, eq } from "drizzle-orm";
 import { format } from "date-fns";
 import { PublicTodayClient } from "./client";
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicTodayPage() {
   // Get the first household as the default
   const [household] = await db.select().from(households).limit(1);

@@ -1,0 +1,180 @@
+name: Deploy MealOK
+
+run-name: Deploy MealOK ${{ github.ref_type == 'tag' && github.ref_name || 'manual' }}
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mealok-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - docker-vm
+    env:
+      STACK_NAME: ${{ vars.MEALOK_STACK_NAME || 'mealok' }}
+      APP_PORT: ${{ vars.MEALOK_APP_PORT || '3010' }}
+      POSTGRES_DB: ${{ vars.MEALOK_POSTGRES_DB || 'mealok' }}
+      POSTGRES_USER: ${{ vars.MEALOK_POSTGRES_USER || 'mealok' }}
+      NEXTAUTH_URL: ${{ vars.MEALOK_NEXTAUTH_URL }}
+      PORTAINER_URL: ${{ vars.PORTAINER_URL || 'https://127.0.0.1:9443' }}
+      PORTAINER_VERIFY_SSL: ${{ vars.PORTAINER_VERIFY_SSL || 'false' }}
+      PORTAINER_ENDPOINT_ID: ${{ vars.PORTAINER_ENDPOINT_ID || '' }}
+      PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+      AUTH_SECRET: ${{ secrets.MEALOK_AUTH_SECRET }}
+      POSTGRES_PASSWORD: ${{ secrets.MEALOK_POSTGRES_PASSWORD }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required=(PORTAINER_API_KEY AUTH_SECRET POSTGRES_PASSWORD NEXTAUTH_URL)
+          for name in "${required[@]}"; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::${name} is required for deployment"
+              exit 1
+            fi
+          done
+
+          if ! [[ "${APP_PORT}" =~ ^[0-9]+$ ]] || [ "${APP_PORT}" -lt 1 ] || [ "${APP_PORT}" -gt 65535 ]; then
+            echo "::error::MEALOK_APP_PORT must be a valid TCP port"
+            exit 1
+          fi
+
+          for name in STACK_NAME POSTGRES_DB POSTGRES_USER NEXTAUTH_URL AUTH_SECRET POSTGRES_PASSWORD; do
+            case "${!name}" in
+              *$'\n'*|*$'\r'*)
+                echo "::error::${name} must not contain a newline"
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Build and test application image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            image_version="${GITHUB_REF_NAME}"
+          else
+            image_version="manual-${GITHUB_SHA:0:12}"
+          fi
+          image_version="$(printf '%s' "${image_version}" | tr -c 'A-Za-z0-9_.-' '-')"
+          image_tag="mealok:${image_version}"
+          echo "IMAGE_TAG=${image_tag}" >> "${GITHUB_ENV}"
+
+          docker build \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.version=${image_version}" \
+            --label "org.opencontainers.image.created=${GITHUB_RUN_ID}" \
+            --tag "${image_tag}" \
+            --tag "mealok:git-${GITHUB_SHA}" \
+            --tag "mealok:latest" \
+            --file Dockerfile \
+            .
+
+      - name: Prepare Portainer stack environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p .ci
+
+          database_url="$(python3 - <<'PY'
+          import os
+          from urllib.parse import quote
+
+          print(
+              "postgresql://{}:{}@db:5432/{}".format(
+                  quote(os.environ["POSTGRES_USER"], safe=""),
+                  quote(os.environ["POSTGRES_PASSWORD"], safe=""),
+                  quote(os.environ["POSTGRES_DB"], safe=""),
+              )
+          )
+          PY
+          )"
+
+          stack_env=.ci/mealok-stack.env
+          {
+            printf 'APP_PORT=%s\n' "${APP_PORT}"
+            printf 'AUTH_SECRET=%s\n' "${AUTH_SECRET}"
+            printf 'NEXTAUTH_SECRET=%s\n' "${AUTH_SECRET}"
+            printf 'NEXTAUTH_URL=%s\n' "${NEXTAUTH_URL}"
+            printf 'DATABASE_URL=%s\n' "${database_url}"
+            printf 'POSTGRES_DB=%s\n' "${POSTGRES_DB}"
+            printf 'POSTGRES_USER=%s\n' "${POSTGRES_USER}"
+            printf 'POSTGRES_PASSWORD=%s\n' "${POSTGRES_PASSWORD}"
+            printf 'MEALOK_IMAGE=%s\n' "${IMAGE_TAG}"
+            printf 'AUTO_MIGRATE=true\n'
+          } > "${stack_env}"
+
+      - name: Back up existing database
+        shell: bash
+        run: scripts/backup_database.sh
+
+      - name: Deploy standalone stack through Portainer
+        shell: bash
+        run: |
+          set -euo pipefail
+          portainer_args=(
+            --stack-name "${STACK_NAME}" \
+            --stack-file docker-compose.production.yml \
+            --env-file .ci/mealok-stack.env
+          )
+          if [ -n "${PORTAINER_ENDPOINT_ID}" ]; then
+            portainer_args+=(--endpoint-id "${PORTAINER_ENDPOINT_ID}")
+          fi
+          python3 scripts/portainer_deploy.py "${portainer_args[@]}"
+
+      - name: Wait for application health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in $(seq 1 60); do
+            app_container="$(docker ps -a \
+              --filter "label=com.docker.compose.project=${STACK_NAME}" \
+              --filter "label=com.docker.compose.service=app" \
+              --format '{{.ID}}' | head -n 1)"
+
+            if [ -n "${app_container}" ]; then
+              app_health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "${app_container}")"
+              if [ "${app_health}" = "healthy" ] && curl --fail --silent --max-time 5 "http://127.0.0.1:${APP_PORT}/login" >/dev/null; then
+                echo "MealOK is healthy on port ${APP_PORT}"
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+
+          echo "::error::MealOK did not become healthy within five minutes"
+          docker ps -a \
+            --filter "label=com.docker.compose.project=${STACK_NAME}" \
+            --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+          exit 1
+
+      - name: Remove generated deployment files
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [ -f .ci/mealok-stack.env ]; then
+            rm -f -- .ci/mealok-stack.env
+          fi

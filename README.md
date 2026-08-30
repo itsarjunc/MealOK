@@ -1,4 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a [Next.js](https://nextjs.org) project for household meal planning and cooking management.
+
+## Deployment
+
+MealOK is deployed to the Docker-VM Portainer environment by the tag/manual GitHub Actions workflow. See [docs/deployment.md](docs/deployment.md) for the required repository configuration and first-deployment steps.
 
 ## Getting Started
 
