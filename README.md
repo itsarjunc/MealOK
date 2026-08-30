@@ -2,7 +2,15 @@ This is a [Next.js](https://nextjs.org) project for household meal planning and 
 
 ## Deployment
 
-MealOK is deployed to the Docker-VM Portainer environment by the tag/manual GitHub Actions workflow. See [docs/deployment.md](docs/deployment.md) for the required repository configuration and first-deployment steps.
+MealOK is deployed to the Docker-VM Portainer environment by GitHub Actions on pushes to
+`main`, version tags, or manual dispatch. Start with the maintainer documentation:
+
+- [Maintainer handoff](HANDOFF.md)
+- [Architecture](docs/architecture.md)
+- [CI/CD procedure](docs/cicd.md)
+- [First-run and proxy setup](docs/first-run.md)
+- [Operations runbook](docs/operations.md)
+- [Deployment configuration](docs/deployment.md)
 
 ## Getting Started
 

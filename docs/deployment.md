@@ -1,56 +1,58 @@
-# MealOK deployment
+# MealOK deployment configuration
 
-MealOK deploys to the Docker-VM Portainer environment from `.github/workflows/deploy-mealok.yml`.
-The workflow runs only for `v*` tags or a manual dispatch. It targets the self-hosted runner
-label `docker-vm`, builds the image locally with Docker, and creates or updates the standalone
-Portainer stack named `mealok`.
+MealOK is deployed as a Docker Compose stack managed by Portainer on Docker-VM. The source of
+truth is the repository workflow and production Compose file:
 
-## GitHub configuration
+- `.github/workflows/deploy-mealok.yml`
+- `docker-compose.production.yml`
+- `Dockerfile`
 
-Add these repository secrets:
+For the complete handoff, see [HANDOFF.md](../HANDOFF.md), [cicd.md](cicd.md),
+[first-run.md](first-run.md), and [operations.md](operations.md).
+
+## Repository configuration
+
+Add these repository secrets under **Settings → Secrets and variables → Actions → Secrets**:
 
 | Secret | Purpose |
 | --- | --- |
-| `PORTAINER_API_KEY` | Portainer access token for the Docker-VM endpoint and stack management |
-| `MEALOK_AUTH_SECRET` | Long random secret used by NextAuth (`AUTH_SECRET` and `NEXTAUTH_SECRET`) |
+| `PORTAINER_API_KEY` | Portainer API access for managing the `mealok` stack |
+| `MEALOK_AUTH_SECRET` | Long random secret used by NextAuth |
 | `MEALOK_POSTGRES_PASSWORD` | Password for the persistent MealOK PostgreSQL database |
 
-Add this required repository variable:
+Add these repository variables under **Settings → Secrets and variables → Actions → Variables**:
 
-| Variable | Purpose |
-| --- | --- |
-| `MEALOK_NEXTAUTH_URL` | The exact browser-visible base URL, including the port if applicable |
+| Variable | Required | Default/purpose |
+| --- | --- | --- |
+| `MEALOK_NEXTAUTH_URL` | Yes | Exact browser-visible URL, such as `https://means.arjunc.com` |
+| `PORTAINER_URL` | No | `https://127.0.0.1:9443`; the current setup uses the Docker-VM address |
+| `MEALOK_APP_PORT` | No | `3010` |
+| `MEALOK_STACK_NAME` | No | `mealok` |
+| `MEALOK_POSTGRES_DB` | No | `mealok` |
+| `MEALOK_POSTGRES_USER` | No | `mealok` |
+| `PORTAINER_VERIFY_SSL` | No | `false` for the current Portainer certificate setup |
+| `PORTAINER_ENDPOINT_ID` | No | Autodetected when Docker-VM has one Portainer endpoint |
 
-Optional variables and defaults:
+Generate the two MealOK secrets locally with a password generator or `openssl rand -hex 32`.
+Never commit them, print them in workflow output, or put them in this documentation.
 
-| Variable | Default |
-| --- | --- |
-| `MEALOK_STACK_NAME` | `mealok` |
-| `MEALOK_APP_PORT` | `3010` |
-| `MEALOK_POSTGRES_DB` | `mealok` |
-| `MEALOK_POSTGRES_USER` | `mealok` |
-| `PORTAINER_URL` | `https://127.0.0.1:9443` |
-| `PORTAINER_VERIFY_SSL` | `false` (use `true` with a trusted Portainer certificate) |
-| `PORTAINER_ENDPOINT_ID` | autodetected when Docker-VM has one Portainer endpoint |
+## Runtime defaults
 
-Generate the two application/database secrets locally, then paste them into GitHub without
-printing them into workflow logs. The database password is URL-encoded when the app connection
-string is generated, so punctuation is supported.
+- Portainer URL: `https://192.168.1.14:9443`
+- Application URL during direct LAN testing: `http://192.168.1.14:3010`
+- Application host port: `3010`
+- PostgreSQL is internal to the Compose network and is not published to the host
+- Database volume: `mealok_postgres_data`
+- Database backups: `/var/tmp/mealok-backups` on Docker-VM, retained for 14 days
 
-## One-time Portainer setup
+When TLS is terminated by a reverse proxy, set `MEALOK_NEXTAUTH_URL` to the public HTTPS URL and
+redeploy. See [first-run.md](first-run.md).
 
-1. Create a Portainer API access token for the account that can manage stacks on Docker-VM's
-   local endpoint, and save it as `PORTAINER_API_KEY`.
-2. Ensure the `abhiram` account used by the MealOK runner can run Docker commands.
-3. Ensure host port `3010` is free, or set `MEALOK_APP_PORT` to an available port.
-4. No stack needs to be created manually. The first workflow run creates `mealok`; later runs
-   update it while retaining its `postgres_data` volume.
+## First deployment
 
-The app waits for PostgreSQL, runs checked-in Drizzle migrations automatically, and then starts
-only after its container health check passes. The workflow takes a custom-format PostgreSQL dump
-before updating an existing stack, storing it under `/var/tmp/mealok-backups` on Docker-VM and
-retaining backups for 14 days. `scripts/seed.ts` is development data-reset code and is never run
-by deployment.
+No stack needs to be created manually. A successful workflow run creates the `mealok` Portainer
+stack, initializes PostgreSQL, runs Drizzle migrations, and waits for the application health check.
 
-To deploy a release, push a version tag such as `v0.1.0`. A manual dispatch uses an immutable
-commit-based image tag and follows the same backup, migration, and health-check path.
+The production workflow never runs `scripts/seed.ts`. That script is development reset data and
+deletes existing rows. Create the first household and account using the procedure in
+[first-run.md](first-run.md).
