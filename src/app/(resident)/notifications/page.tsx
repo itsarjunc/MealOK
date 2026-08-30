@@ -26,7 +26,7 @@ export default async function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-surface-muted pb-safe">
-      <div className="bg-surface px-4 pb-5 pt-8 md:pt-10">
+      <div className="bg-surface-muted px-4 pb-6 pt-5 md:pt-10">
         <Link href="/home" className="text-xs font-extrabold text-foreground-muted hover:text-foreground">← Back home</Link>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-foreground">Notifications</h1>
         <p className="mt-1 text-sm font-medium text-foreground-muted">Updates from your household kitchen.</p>

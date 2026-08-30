@@ -6,6 +6,7 @@ import { mealPlans, mealPlanItems, notifications, users, auditLogs } from "@/db/
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { assertPlanningOpen } from "@/lib/domain/planning";
 
 const schema = z.object({
   recipeIds: z.array(z.number()).min(1),
@@ -21,6 +22,7 @@ export async function proposeMeal(recipeIds: number[], mealType: string, dateStr
   const userId = parseInt(session.user.id);
   
   const parsed = schema.parse({ recipeIds, mealType, dateString });
+  assertPlanningOpen(parsed.dateString);
 
   let [plan] = await db.select().from(mealPlans).where(
     and(eq(mealPlans.householdId, householdId), eq(mealPlans.date, parsed.dateString))

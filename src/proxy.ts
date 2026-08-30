@@ -3,8 +3,11 @@ import { NextResponse } from "next/server";
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
-  const isAuthRoute = req.nextUrl.pathname.startsWith('/login');
-  const isPublicRoute = req.nextUrl.pathname === '/today';
+  const isAuthRoute = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/register');
+  const isPublicRoute =
+    req.nextUrl.pathname === '/today' ||
+    req.nextUrl.pathname === '/branding' ||
+    req.nextUrl.pathname.startsWith('/branding/');
   
   if (isAuthRoute) {
     if (isLoggedIn) {

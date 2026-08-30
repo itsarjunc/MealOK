@@ -54,7 +54,7 @@ export default async function PlanPage() {
 
   return (
     <div className="min-h-screen bg-surface-muted pb-safe">
-      <div className="bg-surface px-4 pb-5 pt-8 md:pt-10">
+      <div className="bg-surface-muted px-4 pb-6 pt-5 md:pt-10">
         <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-foreground-muted">Planning ahead</p>
         <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground">Tomorrow&apos;s plan</h1>
         <p className="mt-1 text-sm font-medium text-foreground-muted">{format(addDays(new Date(), 1), "EEEE, MMMM do")}</p>

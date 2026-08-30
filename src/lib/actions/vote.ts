@@ -2,9 +2,10 @@
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { mealVotes, mealPlanItems, households, notifications, users, auditLogs } from "@/db/schema";
+import { mealVotes, mealPlanItems, mealPlans, households, notifications, users, auditLogs } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { assertPlanningOpen } from "@/lib/domain/planning";
 
 export async function castVote(mealPlanItemId: number, vote: "APPROVED" | "REJECTED") {
   const session = await auth();
@@ -19,6 +20,12 @@ export async function castVote(mealPlanItemId: number, vote: "APPROVED" | "REJEC
 
   if (!item) throw new Error("Meal plan item not found");
   if (item.state !== "VOTING") throw new Error("Meal is not open for voting");
+
+  const [plan] = await db.select().from(mealPlans).where(
+    and(eq(mealPlans.id, item.mealPlanId), eq(mealPlans.householdId, householdId))
+  );
+  if (!plan) throw new Error("Meal plan not found");
+  assertPlanningOpen(plan.date);
 
   const existing = await db.select().from(mealVotes).where(
     and(eq(mealVotes.mealPlanItemId, mealPlanItemId), eq(mealVotes.userId, userId))

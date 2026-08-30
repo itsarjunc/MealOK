@@ -88,7 +88,7 @@ export function HomeClient({ todayItems, tomorrowItems, userAttendances, nutriti
 
         <div className="px-5">
           {todayItems.length === 0 ? (
-            <EmptyState message="No meals planned for today." action="Plan today" />
+            <EmptyState message="No meals planned for today." />
           ) : (
             todayItems.map((item) => <MealRow key={item.id} item={item} attendance={attendanceFor(item)} />)
           )}

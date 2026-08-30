@@ -3,6 +3,7 @@ import { mealPlans, mealPlanItems, households } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { format } from "date-fns";
 import { PublicTodayClient } from "./client";
+import { Logo } from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function PublicTodayPage() {
         <div className="pb-safe">
           {/* Header Branding */}
           <div className="flex items-center justify-center py-4 mb-4 select-none">
-            <img src="/branding/Vector.svg" alt="Logo" className="h-10 w-auto" />
+            <Logo alt="Logo" className="h-10 w-auto" />
           </div>
 
           <PublicTodayClient items={enrichedItems} dateStr={format(new Date(), "EEEE, MMMM do")} />

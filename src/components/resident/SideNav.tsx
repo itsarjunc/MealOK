@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Calendar, Utensils, Settings, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/Logo";
 
 const navItems = [
   { name: "Home", href: "/home", icon: Home },
@@ -19,7 +20,7 @@ export function SideNav() {
   return (
     <nav className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-surface border-r border-border z-50">
       <div className="p-6 border-b border-border flex justify-center select-none">
-        <img src="/branding/Vector.svg" alt="Logo" className="h-16 w-auto" />
+        <Logo alt="Logo" className="h-16 w-auto" />
       </div>
       <div className="flex-1 py-4 px-3 flex flex-col gap-1 overflow-y-auto">
         {navItems.map((item) => {

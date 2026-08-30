@@ -6,6 +6,7 @@ import { format, addDays } from "date-fns";
 import Link from "next/link";
 import { Bell, ArrowUpRight, AlertTriangle } from "lucide-react";
 import { HomeClient } from "./client";
+import { Logo } from "@/components/Logo";
 
 export default async function HomePage() {
   const session = await auth();
@@ -63,7 +64,7 @@ export default async function HomePage() {
     <div className="pb-safe bg-surface-muted min-h-screen">
       <div className="bg-surface px-4 pb-4 pt-5 md:pt-8">
         <div className="flex items-center justify-between">
-          <img src="/branding/Vector.svg" alt="MealOK" className="h-8 w-auto" />
+          <Logo className="h-8 w-auto" />
           <Link href="/notifications" aria-label="Notifications" className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface-muted transition hover:bg-border">
             <Bell className="h-5 w-5 text-foreground" />
             {notifs.length > 0 && (

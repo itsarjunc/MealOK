@@ -1,27 +1,32 @@
 import { auth, signIn } from "@/auth";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Logo } from "@/components/Logo";
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; registered?: string }> }) {
   const session = await auth();
   if (session) {
     redirect("/home");
   }
 
-  const { error } = await searchParams;
+  const { error, registered } = await searchParams;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-muted p-4 md:p-8">
-      <div className="w-full max-w-sm rounded-[2rem] border border-border bg-surface p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)] md:p-10">
-        <div className="flex justify-center mb-8 select-none">
-          <img src="/branding/Vector.svg" alt="Logo" className="h-24 w-auto" />
+      <div className="flex w-full max-w-sm flex-col items-center">
+        <div className="mb-5 flex justify-center select-none">
+          <Logo alt="Logo" className="h-12 w-auto" />
         </div>
-        
+
+        <div className="w-full rounded-[2rem] border border-border bg-surface p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)] md:p-10">
         {error && (
           <div className="mb-6 rounded-xl border border-red-100 bg-red-50 p-3 text-center text-sm font-bold text-red-700">
             {error === "CredentialsSignin" ? "Invalid email or password." : "Something went wrong. Please try again."}
           </div>
         )}
+
+        {registered && <div className="mb-6 rounded-xl border border-green-100 bg-green-50 p-3 text-center text-sm font-bold text-green-700">Account created. You can sign in now.</div>}
 
         <form
           action={async (formData) => {
@@ -61,6 +66,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             Sign In
           </button>
         </form>
+        <p className="mt-6 text-center text-xs font-medium text-foreground-muted">New to MealOK? <Link href="/register" className="font-extrabold text-foreground hover:text-zomato">Create an account</Link></p>
+        </div>
       </div>
     </div>
   );

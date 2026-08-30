@@ -23,7 +23,7 @@ export default async function HistoryPage() {
   
   return (
     <div className="min-h-screen bg-surface-muted pb-safe">
-      <div className="bg-surface px-4 pb-5 pt-8 md:pt-10">
+      <div className="bg-surface-muted px-4 pb-6 pt-5 md:pt-10">
         <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-foreground-muted">Your kitchen</p>
         <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground">Meal history</h1>
         <p className="mt-1 text-sm font-medium text-foreground-muted">A look back at finalized household menus.</p>
