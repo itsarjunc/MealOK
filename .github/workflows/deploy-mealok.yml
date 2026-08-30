@@ -68,6 +68,15 @@ jobs:
             esac
           done
 
+      - name: Clean Docker build storage
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker image prune -a -f \
+            --filter "label=org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}"
+          docker builder prune -a -f
+
       - name: Build and test application image
         shell: bash
         run: |
