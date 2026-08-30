@@ -24,7 +24,7 @@ Add these repository variables under **Settings → Secrets and variables → Ac
 
 | Variable | Required | Default/purpose |
 | --- | --- | --- |
-| `MEALOK_NEXTAUTH_URL` | Yes | Exact browser-visible URL, such as `https://means.arjunc.com` |
+| `MEALOK_NEXTAUTH_URL` | Yes | Exact browser-visible URL, such as `https://meals.arjunc.com` |
 | `PORTAINER_URL` | No | `https://127.0.0.1:9443`; the current setup uses the Docker-VM address |
 | `MEALOK_APP_PORT` | No | `3010` |
 | `MEALOK_STACK_NAME` | No | `mealok` |

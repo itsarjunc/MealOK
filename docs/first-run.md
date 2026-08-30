@@ -6,7 +6,7 @@ The container serves HTTP on host port `3010`. Put a reverse proxy in front of i
 TLS there. For the intended public hostname, the GitHub Actions variable should be:
 
 ```text
-MEALOK_NEXTAUTH_URL=https://means.arjunc.com
+MEALOK_NEXTAUTH_URL=https://meals.arjunc.com
 ```
 
 If the final hostname is different, use that exact browser-visible URL instead. After changing the
@@ -15,7 +15,7 @@ variable, redeploy so NextAuth generates callbacks and cookies for the public ad
 Example Caddy configuration when Caddy runs on Docker-VM:
 
 ```caddyfile
-means.arjunc.com {
+meals.arjunc.com {
     reverse_proxy 127.0.0.1:3010
 }
 ```
@@ -42,7 +42,7 @@ VALUES ('My Household', 'Asia/Kolkata', 3);
 
 ## 3. Register the first user
 
-Open `https://means.arjunc.com/register` after the proxy and DNS are working. Choose the email,
+Open `https://meals.arjunc.com/register` after the proxy and DNS are working. Choose the email,
 name, and a strong password locally. Registration creates a `RESIDENT` account in the first
 household.
 

@@ -52,7 +52,7 @@ Required variable:
 
 | Name | Example |
 | --- | --- |
-| `MEALOK_NEXTAUTH_URL` | `https://means.arjunc.com` |
+| `MEALOK_NEXTAUTH_URL` | `https://meals.arjunc.com` |
 
 Optional variables and defaults are documented in [deployment.md](deployment.md). The current
 Portainer URL variable is `https://192.168.1.14:9443`; TLS verification remains disabled unless
